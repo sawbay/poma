@@ -34,6 +34,7 @@
 				justify-content: center;
 				gap: 1rem;
 				margin-bottom: 0.5rem;
+				flex-wrap: wrap;
 			}
 			nav a {
 				color: rgba(255, 255, 255, 0.8);
@@ -72,6 +73,7 @@
 				padding: 0.75rem 0.5rem;
 				border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 				text-align: left;
+				word-break: break-word;
 			}
 			th {
 				font-size: 0.75rem;
@@ -172,6 +174,23 @@
 				}
 				.chat-bubble {
 					max-width: 100%;
+				}
+			}
+
+			@media (max-width: 640px) {
+				header {
+					padding: 1.75rem 1rem 0.75rem;
+				}
+				main {
+					padding: 0 1rem 3rem;
+				}
+				section {
+					padding: 1.25rem;
+				}
+				table,
+				th,
+				td {
+					font-size: 0.9rem;
 				}
 			}
 		</style>
