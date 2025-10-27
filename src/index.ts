@@ -2,7 +2,8 @@ import { handleChatRequest } from "./chat";
 import { refreshPrices } from "./pricing";
 import { buildPortfolioSummary } from "./summary";
 import type { ChatMessage } from "./types";
-import html from "./ui/index.html";
+import overviewHtml from "./ui/index.html";
+import manageHtml from "./ui/manage.html";
 
 interface Env {
 	POMA_KV: KVNamespace;
@@ -19,7 +20,15 @@ export default {
 			}
 
 			if (request.method === "GET" && url.pathname === "/") {
-				return new Response(html, {
+				return new Response(overviewHtml, {
+					headers: {
+						"content-type": "text/html; charset=UTF-8",
+					},
+				});
+			}
+
+			if (request.method === "GET" && url.pathname === "/manage") {
+				return new Response(manageHtml, {
 					headers: {
 						"content-type": "text/html; charset=UTF-8",
 					},
