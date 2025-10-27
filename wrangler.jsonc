@@ -26,9 +26,8 @@
   },
   "kv_namespaces": [
     {
-      "binding": "PORTFOLIO_KV",
-      "id": "REPLACE_WITH_PRODUCTION_NAMESPACE_ID",
-      "preview_id": "portfolio-kv"
+      "binding": "POMA_KV",
+      "id": "7531ca4ca6f94f209d792bd43f25ed03",
     }
   ]
   /**

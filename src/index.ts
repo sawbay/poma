@@ -1,4 +1,3 @@
-import type { Ai } from "@cloudflare/workers-types";
 import { handleChatRequest } from "./chat";
 import { refreshPrices } from "./pricing";
 import { buildPortfolioSummary } from "./summary";
@@ -6,7 +5,7 @@ import type { ChatMessage } from "./types";
 import html from "./index.html";
 
 interface Env {
-	PORTFOLIO_KV: KVNamespace;
+	POMA_KV: KVNamespace;
 	AI: Ai;
 }
 
@@ -28,15 +27,15 @@ export default {
 			}
 
 			if (request.method === "GET" && url.pathname === "/api/portfolio") {
-				const summary = await buildPortfolioSummary(env.PORTFOLIO_KV);
+				const summary = await buildPortfolioSummary(env.POMA_KV);
 				return jsonResponse(summary);
 			}
 
 			if (request.method === "POST" && url.pathname === "/api/chat") {
 				const payload = await parseJson<{ messages?: ChatMessage[] }>(request);
 				const sanitized = sanitizeMessages(payload?.messages ?? []);
-				const chat = await handleChatRequest(env.AI ?? null, env.PORTFOLIO_KV, sanitized);
-				const summary = await buildPortfolioSummary(env.PORTFOLIO_KV);
+				const chat = await handleChatRequest(env.AI ?? null, env.POMA_KV, sanitized);
+				const summary = await buildPortfolioSummary(env.POMA_KV);
 				return jsonResponse({
 					reply: chat.reply,
 					operations: chat.operations,
@@ -45,8 +44,8 @@ export default {
 			}
 
 			if (request.method === "POST" && url.pathname === "/api/prices/refresh") {
-				const prices = await refreshPrices(env.PORTFOLIO_KV);
-				const summary = await buildPortfolioSummary(env.PORTFOLIO_KV);
+				const prices = await refreshPrices(env.POMA_KV);
+				const summary = await buildPortfolioSummary(env.POMA_KV);
 				return jsonResponse({ ok: true, prices, summary });
 			}
 
@@ -57,8 +56,8 @@ export default {
 		}
 	},
 	async scheduled(event, env): Promise<void> {
-		await refreshPrices(env.PORTFOLIO_KV);
-		await buildPortfolioSummary(env.PORTFOLIO_KV);
+		await refreshPrices(env.POMA_KV);
+		await buildPortfolioSummary(env.POMA_KV);
 	},
 } satisfies ExportedHandler<Env>;
 

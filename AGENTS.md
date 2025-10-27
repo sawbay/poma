@@ -26,7 +26,7 @@
    - Triggers: manual (“analyze today”) or scheduled Worker cron job that lets the agent write a note back to KV/Durable Object.
 
 ### 3. Data Surface
-- `PORTFOLIO_KV`
+- `POMA_KV`
   - `portfolio:<user>` → canonical list of assets (id, label, category, address/symbol, quantity).
   - `prices:latest` → `{ timestamp, BTC, ETH, SOL, GOLD, USD }`.
 - `LOGS_DO` (Durable Object, optional)

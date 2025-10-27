@@ -1,4 +1,3 @@
-import type { Ai } from "@cloudflare/workers-types";
 import {
 	createBlockchainAsset,
 	createPhysicalAsset,

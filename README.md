@@ -14,8 +14,8 @@ Single-user Cloudflare Worker that tracks blockchain wallets (BTC, ETH, SOL) and
    ```
 2. **Provision KV namespaces**
    ```bash
-   npx wrangler kv:namespace create PORTFOLIO_KV
-   npx wrangler kv:namespace create PORTFOLIO_KV --preview --env=dev
+   npx wrangler kv:namespace create POMA_KV
+   npx wrangler kv:namespace create POMA_KV --preview --env=dev
    ```
    Replace the `id` and `preview_id` values in `wrangler.jsonc`.
 3. (Optional) **Configure cron trigger**  
