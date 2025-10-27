@@ -254,6 +254,7 @@
 				currency: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }),
 				number: new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }),
 				colors: ["#5f5bff", "#56d9ff", "#7ee085", "#f9a8d4", "#f97373", "#facc15"],
+				prices: null,
 			};
 
 			const totalUsdEl = document.getElementById("total-usd");
@@ -263,19 +264,66 @@
 			const assetRowsEl = document.getElementById("asset-rows");
 			const chartCanvas = document.getElementById("chart-canvas");
 			const chartLegend = document.getElementById("chart-legend");
-		loadPortfolio();
+			const chainSymbolMap = {
+				bitcoin: "BTC",
+				ethereum: "ETH",
+				solana: "SOL",
+			};
+
+			loadPortfolio();
 
 			async function loadPortfolio() {
 				try {
-					const response = await fetch("/api/portfolio");
-					if (!response.ok) {
-						throw new Error("Failed to load portfolio");
-					}
-					const summary = await response.json();
-					updateDashboard(summary);
+					const [summary, prices] = await Promise.all([fetchSummary(), fetchPrices()]);
+					state.prices = prices;
+					const assets = applyPrices(summary.assets ?? [], prices);
+					const totals = computeTotals(assets);
+					updateDashboard({
+						...summary,
+						assets,
+						totals,
+					});
 				} catch (error) {
+					totalUsdEl.textContent = "--";
+					blockchainEl.textContent = "--";
+					physicalEl.textContent = "--";
+					chartLegend.innerHTML = "<p>Failed to load holdings.</p>";
 					console.error(error);
 				}
+			}
+
+			async function fetchSummary() {
+				const response = await fetch("/api/portfolio");
+				if (!response.ok) {
+					throw new Error("Failed to load portfolio");
+				}
+				return response.json();
+			}
+
+			async function fetchPrices() {
+				const basePrices = { BTC: 0, ETH: 0, SOL: 0, GOLD: 0, USD: 1 };
+				const [cryptoResult, goldResult] = await Promise.allSettled([
+					fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd"),
+					fetch("https://data-asg.goldprice.org/dbXRates/USD"),
+				]);
+
+				if (cryptoResult.status === "fulfilled" && cryptoResult.value.ok) {
+					const payload = await cryptoResult.value.json();
+					basePrices.BTC = payload.bitcoin?.usd ?? 0;
+					basePrices.ETH = payload.ethereum?.usd ?? 0;
+					basePrices.SOL = payload.solana?.usd ?? 0;
+				} else {
+					console.warn("Failed to fetch crypto prices");
+				}
+
+				if (goldResult.status === "fulfilled" && goldResult.value.ok) {
+					const payload = await goldResult.value.json();
+					basePrices.GOLD = payload.items?.[0]?.xauPrice ?? payload.items?.[0]?.xauPriceGram24k ?? 0;
+				} else {
+					console.warn("Failed to fetch gold price");
+				}
+
+				return basePrices;
 			}
 
 			function updateDashboard(summary) {
@@ -285,6 +333,43 @@
 				lastUpdatedEl.textContent = new Date(summary.updatedAt).toLocaleString();
 				renderAssetRows(summary.assets);
 				renderChart(summary.assets);
+			}
+
+			function applyPrices(assets, prices) {
+				return assets.map((asset) => {
+					const priced = { ...asset };
+					const symbol =
+						asset.category === "blockchain"
+							? chainSymbolMap[asset.chain] ?? ""
+							: asset.symbol ?? "";
+					const usdPrice = symbol === "USD" ? 1 : prices[symbol] ?? 0;
+					const quantity = Number.isFinite(priced.quantity) ? priced.quantity : 0;
+					priced.usdPrice = usdPrice;
+					priced.usdValue = quantity * usdPrice;
+					if (priced.category === "physical" && symbol === "GOLD" && !usdPrice) {
+						priced.status = "error";
+						priced.message = "Price unavailable";
+					}
+					return priced;
+				});
+			}
+
+			function computeTotals(assets) {
+				const totals = {
+					usd: 0,
+					byCategory: {
+						blockchain: 0,
+						physical: 0,
+					},
+				};
+
+				for (const asset of assets) {
+					const value = Number.isFinite(asset.usdValue) ? asset.usdValue : 0;
+					totals.usd += value;
+					totals.byCategory[asset.category] += value;
+				}
+
+				return totals;
 			}
 
 			function renderAssetRows(assets) {

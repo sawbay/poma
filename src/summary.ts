@@ -1,13 +1,12 @@
 import { getBlockchainBalance } from "./balances";
-import { getCachedPrices } from "./pricing";
 import { loadPortfolio } from "./portfolio";
 import type { AssetView, PortfolioAsset, PortfolioSummary, TotalsBreakdown } from "./types";
 
 export async function buildPortfolioSummary(kv: KVNamespace): Promise<PortfolioSummary> {
-	const [portfolio, prices] = await Promise.all([loadPortfolio(kv), getCachedPrices(kv)]);
+	const portfolio = await loadPortfolio(kv);
 
 	const assets = await Promise.all(
-		portfolio.assets.map(async (asset) => buildAssetView(asset, prices)),
+		portfolio.assets.map(async (asset) => buildAssetView(asset)),
 	);
 	const totals = computeTotals(assets);
 
@@ -15,18 +14,13 @@ export async function buildPortfolioSummary(kv: KVNamespace): Promise<PortfolioS
 		updatedAt: portfolio.updatedAt,
 		assets,
 		totals,
-		prices,
+		prices: {},
 	};
 }
 
-async function buildAssetView(
-	asset: PortfolioAsset,
-	prices: Record<string, number>,
-): Promise<AssetView> {
+async function buildAssetView(asset: PortfolioAsset): Promise<AssetView> {
 	if (asset.category === "blockchain") {
 		const balance = await getBlockchainBalance(asset);
-		const usdPrice = prices[balance.symbol] ?? 0;
-		const usdValue = balance.quantity * usdPrice;
 		return {
 			id: asset.id,
 			label: asset.label,
@@ -34,15 +28,15 @@ async function buildAssetView(
 			chain: asset.chain,
 			address: asset.address,
 			quantity: balance.quantity,
-			usdPrice,
-			usdValue,
+			usdPrice: 0,
+			usdValue: 0,
 			status: balance.status,
 			message: balance.message,
 		};
 	}
 
-	const usdPrice = prices[asset.symbol] ?? (asset.symbol === "USD" ? 1 : 0);
-	const usdValue = asset.quantity * usdPrice;
+	const usdPrice = asset.symbol === "USD" ? 1 : 0;
+	const usdValue = asset.symbol === "USD" ? asset.quantity : 0;
 	return {
 		id: asset.id,
 		label: asset.label,

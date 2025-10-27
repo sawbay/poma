@@ -1,5 +1,4 @@
 import { handleChatRequest } from "./chat";
-import { refreshPrices } from "./pricing";
 import { buildPortfolioSummary } from "./summary";
 import type { ChatMessage } from "./types";
 import overviewHtml from "./ui/index.html";
@@ -52,12 +51,6 @@ export default {
 				});
 			}
 
-			if (request.method === "POST" && url.pathname === "/api/prices/refresh") {
-				const prices = await refreshPrices(env.POMA_KV);
-				const summary = await buildPortfolioSummary(env.POMA_KV);
-				return jsonResponse({ ok: true, prices, summary });
-			}
-
 			return new Response("Not found", { status: 404 });
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Unexpected worker error";
@@ -65,7 +58,6 @@ export default {
 		}
 	},
 	async scheduled(event, env): Promise<void> {
-		await refreshPrices(env.POMA_KV);
 		await buildPortfolioSummary(env.POMA_KV);
 	},
 } satisfies ExportedHandler<Env>;

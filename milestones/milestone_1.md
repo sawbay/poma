@@ -5,16 +5,16 @@ Stand up the foundational worker, storage bindings, and vanilla UI (single-user 
 
 ### Deliverables
 1. **Worker routes**  
-   - Serve HTML shell at `/`.  
-   - JSON APIs: `/api/portfolio` (summary), `/api/chat` (LLM planner stub), `/api/prices/refresh` (manual refresh).  
-   - Daily cron handler that updates price cache + recomputes summaries.
+   - Serve HTML shells at `/` and `/manage`.  
+   - JSON APIs: `/api/portfolio` (summary) and `/api/chat` (LLM planner stub).  
+   - Cron hook reserved for future automation; price polling happens in the browser.
 2. **Persistence layer**  
-   - KV schema for `portfolio:<user>` and `prices:latest`.  
-   - Helper utilities for asset CRUD, balance fetchers, and price storage.  
+   - KV schema for `portfolio:<user>` (canonical assets).  
+   - Helper utilities for asset CRUD and blockchain balance fetchers; market pricing is client-driven.  
    - Type definitions for assets, operations, and summaries.
 3. **Vanilla UI**  
    - Responsive metrics cards, pie chart, holdings table, and chat log.  
-   - Fetch portfolio on load, display operations feedback, gracefully handle empty state.  
+   - Fetch portfolio on load, request live prices client-side, display operations feedback, gracefully handle empty state.  
    - Accessible form controls with keyboard-friendly defaults.
 4. **DX**  
    - Documentation in `AGENTS.md` explaining agent plan + tool expectations.  
@@ -22,5 +22,5 @@ Stand up the foundational worker, storage bindings, and vanilla UI (single-user 
 
 ### Exit Criteria
 - `wrangler dev` serves the dashboard and can add/remove assets via the chat stub (even if operations are currently rule-based, not agent-driven).  
-- Daily cron (triggered via `wrangler cron trigger`) populates `prices:latest`.  
-- Milestone demo video or notes showing manual walkthrough of adding assets and seeing chart update.
+- Browser-side price fetch populates USD totals and allocations after the portfolio loads.  
+- Milestone demo video or notes showing manual walkthrough of adding assets, seeing balances, and confirming client-computed chart update.

@@ -240,12 +240,18 @@
 				messages: [],
 				currency: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }),
 				number: new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }),
+				prices: null,
 			};
 
 			const assetRowsEl = document.getElementById("asset-rows");
 			const chatLog = document.getElementById("chat-log");
 			const chatForm = document.getElementById("chat-form");
 			const chatInput = document.getElementById("chat-input");
+			const chainSymbolMap = {
+				bitcoin: "BTC",
+				ethereum: "ETH",
+				solana: "SOL",
+			};
 
 			init();
 
@@ -257,12 +263,10 @@
 
 			async function loadPortfolio() {
 				try {
-					const response = await fetch("/api/portfolio");
-					if (!response.ok) {
-						throw new Error("Failed to load portfolio");
-					}
-					const summary = await response.json();
-					renderAssetRows(summary.assets);
+					const summary = await fetchSummary();
+					const prices = await ensurePrices();
+					const assets = applyPrices(summary.assets ?? [], prices);
+					renderAssetRows(assets);
 				} catch (error) {
 					console.error(error);
 				}
@@ -296,7 +300,9 @@
 					appendChatEntry("assistant", formatAssistantReply(reply, payload.operations));
 					state.messages.push({ role: "assistant", content: reply });
 					if (payload.summary) {
-						renderAssetRows(payload.summary.assets);
+						const prices = await ensurePrices();
+						const assets = applyPrices(payload.summary.assets ?? [], prices);
+						renderAssetRows(assets);
 					}
 				} catch (error) {
 					removeTypingIndicator(typingEntry);
@@ -307,6 +313,67 @@
 					chatInput.focus();
 				}
 			});
+
+			async function fetchSummary() {
+				const response = await fetch("/api/portfolio");
+				if (!response.ok) {
+					throw new Error("Failed to load portfolio");
+				}
+				return response.json();
+			}
+
+			async function ensurePrices() {
+				if (state.prices) {
+					return state.prices;
+				}
+				state.prices = await fetchPrices();
+				return state.prices;
+			}
+
+			async function fetchPrices() {
+				const basePrices = { BTC: 0, ETH: 0, SOL: 0, GOLD: 0, USD: 1 };
+				const [cryptoResult, goldResult] = await Promise.allSettled([
+					fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd"),
+					fetch("https://data-asg.goldprice.org/dbXRates/USD"),
+				]);
+
+				if (cryptoResult.status === "fulfilled" && cryptoResult.value.ok) {
+					const payload = await cryptoResult.value.json();
+					basePrices.BTC = payload.bitcoin?.usd ?? 0;
+					basePrices.ETH = payload.ethereum?.usd ?? 0;
+					basePrices.SOL = payload.solana?.usd ?? 0;
+				} else {
+					console.warn("Failed to fetch crypto prices");
+				}
+
+				if (goldResult.status === "fulfilled" && goldResult.value.ok) {
+					const payload = await goldResult.value.json();
+					basePrices.GOLD = payload.items?.[0]?.xauPrice ?? payload.items?.[0]?.xauPriceGram24k ?? 0;
+				} else {
+					console.warn("Failed to fetch gold price");
+				}
+
+				return basePrices;
+			}
+
+			function applyPrices(assets, prices) {
+				return assets.map((asset) => {
+					const priced = { ...asset };
+					const symbol =
+						asset.category === "blockchain"
+							? chainSymbolMap[asset.chain] ?? ""
+							: asset.symbol ?? "";
+					const usdPrice = symbol === "USD" ? 1 : prices[symbol] ?? 0;
+					const quantity = Number.isFinite(priced.quantity) ? priced.quantity : 0;
+					priced.usdPrice = usdPrice;
+					priced.usdValue = quantity * usdPrice;
+					if (priced.category === "physical" && symbol === "GOLD" && !usdPrice) {
+						priced.status = "error";
+						priced.message = "Price unavailable";
+					}
+					return priced;
+				});
+			}
 
 			function renderAssetRows(assets) {
 				assetRowsEl.innerHTML = "";
