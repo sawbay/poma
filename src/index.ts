@@ -2,7 +2,7 @@ import { handleChatRequest } from "./chat";
 import { refreshPrices } from "./pricing";
 import { buildPortfolioSummary } from "./summary";
 import type { ChatMessage } from "./types";
-import html from "./index.html";
+import html from "./ui/index.html";
 
 interface Env {
 	POMA_KV: KVNamespace;
