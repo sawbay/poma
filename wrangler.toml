@@ -5,6 +5,9 @@ main = "src/server.ts"
 compatibility_date = "2025-08-03"
 compatibility_flags = ["nodejs_compat"]
 
+[vars]
+MODEL_NAME="llama-4-scout-17b-16e-instruct"
+
 [observability]
 enabled = true
 

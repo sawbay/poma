@@ -1,9 +1,8 @@
 {
-	"name": "cloudflare-agent-starter",
+	"name": "poma",
 	"version": "1.0.0",
 	"description": "",
 	"type": "module",
-	"private": true,
 	"scripts": {
 		"dev": "vite dev",
 		"deploy": "vite build && wrangler deploy",
