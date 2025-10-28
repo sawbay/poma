@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import { routeAgentRequest } from "agents";
 import { AIChatAgent } from "agents/ai-chat-agent";
 import {
@@ -41,7 +40,7 @@ export class HumanInTheLoop extends AIChatAgent<Env> {
     // Use streamText directly and return with metadata
     const result = streamText({
       messages: convertToModelMessages(this.messages),
-      model: workersai("@cf/meta/llama-3.3-70b-instruct-fp8-fast" as any),
+      model: workersai(this.env.MODEL_NAME as any),
       onFinish,
       tools,
       stopWhen: stepCountIs(5)
@@ -52,7 +51,7 @@ export class HumanInTheLoop extends AIChatAgent<Env> {
         // This is optional, purely for demo purposes in this example
         if (part.type === "start") {
           return {
-            model: "gpt-4o",
+            model: this.env.MODEL_NAME,
             createdAt: Date.now(),
             messageCount: this.messages.length
           };
