@@ -1,7 +1,7 @@
 import type { UIMessage as Message } from "ai";
 import { getToolName, isToolUIPart } from "ai";
-import { clientTools } from "./tools";
-import { APPROVAL, toolsRequiringConfirmation } from "./utils";
+import { clientTools } from "../server/tools";
+import { APPROVAL, toolsRequiringConfirmation } from "../server/utils";
 import "./styles.css";
 import { useAgentChat, type AITool } from "agents/ai-react";
 import { useAgent } from "agents/react";

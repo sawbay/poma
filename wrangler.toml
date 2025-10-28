@@ -1,7 +1,7 @@
 # For more details on configuring Wrangler, see:
 # https://developers.cloudflare.com/workers/wrangler/configuration/
 name = "poma"
-main = "src/server.ts"
+main = "src/server/index.ts"
 compatibility_date = "2025-08-03"
 compatibility_flags = ["nodejs_compat"]
 

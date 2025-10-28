@@ -6,7 +6,6 @@
 	"scripts": {
 		"dev": "vite dev",
 		"deploy": "vite build && wrangler deploy",
-		"test": "vitest",
 		"types": "wrangler types",
 		"format": "prettier --write .",
 		"check": "prettier . --check && biome lint && tsc"
