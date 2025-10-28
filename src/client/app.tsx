@@ -34,7 +34,10 @@ export default function Chat() {
   };
 
   const agent = useAgent({
-    agent: "human-in-the-loop"
+    agent: "poma-agent",
+    onMessage: (message) => {
+      console.log("---> ", message.data);
+    },
   });
 
   const { messages, sendMessage, addToolResult, clearHistory } = useAgentChat({
@@ -71,9 +74,8 @@ export default function Chat() {
     messages.length > 0 && scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Tools requiring confirmation are auto-detected by useAgentChat from tools object
-  // Tools without execute function need confirmation (getWeatherInformation)
-  // Tools with execute function are automatic (getLocalTime)
+  // Tools requiring confirmation are auto-detected by useAgentChat from the tools object.
+  // Server-side writes (e.g., tool.portfolio.write) pause for approval, read-only utilities run automatically.
   const pendingToolCallConfirmation = messages.some((m: Message) =>
     m.parts?.some(
       (part) => isToolUIPart(part) && part.state === "input-available"

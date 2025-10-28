@@ -33,10 +33,7 @@ export const APPROVAL = {
 /**
  * Tools that require Human-In-The-Loop
  */
-export const toolsRequiringConfirmation = [
-  "getLocalTime",
-  "getWeatherInformation"
-];
+export const toolsRequiringConfirmation = ["tool.portfolio.write"];
 
 /**
  * Check if a message contains tool confirmations
@@ -50,17 +47,6 @@ export function hasToolConfirmation(message: UIMessage): boolean {
         "output" in part
     ) || false
   );
-}
-
-/**
- * Weather tool implementation
- */
-export async function getWeatherInformation(args: unknown): Promise<string> {
-  const { city } = args as { city: string };
-  const conditions = ["sunny", "cloudy", "rainy", "snowy"];
-  return `The weather in ${city} is ${
-    conditions[Math.floor(Math.random() * conditions.length)]
-  }.`;
 }
 
 /**

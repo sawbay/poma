@@ -8,19 +8,16 @@ import {
   streamText,
   stepCountIs
 } from "ai";
-import { tools } from "./tools";
-import {
-  processToolCalls,
-  hasToolConfirmation,
-  getWeatherInformation
-} from "./utils";
+import { createServerTools, executePortfolioWrite } from "./tools";
+import { processToolCalls, hasToolConfirmation } from "./utils";
 import { createWorkersAI } from 'workers-ai-provider';
 
-export class HumanInTheLoop extends AIChatAgent<Env> {
+export class PomaAgent extends AIChatAgent<Env> {
   async onChatMessage(onFinish: StreamTextOnFinishCallback<{}>) {
     const startTime = Date.now();
 
     const lastMessage = this.messages[this.messages.length - 1];
+    const tools = createServerTools(this.env);
 
     if (hasToolConfirmation(lastMessage)) {
       // Process tool confirmations using UI stream
@@ -28,7 +25,7 @@ export class HumanInTheLoop extends AIChatAgent<Env> {
         execute: async ({ writer }) => {
           await processToolCalls(
             { writer, messages: this.messages, tools },
-            { getWeatherInformation }
+            { "tool.portfolio.write": (input) => executePortfolioWrite(this.env, input) }
           );
         }
       });
