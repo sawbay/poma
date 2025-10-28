@@ -1,124 +1,76 @@
-import { routeAgentRequest, type Schedule } from "agents";
-import { getSchedulePrompt } from "agents/schedule";
+import { openai } from "@ai-sdk/openai";
+import { routeAgentRequest } from "agents";
 import { AIChatAgent } from "agents/ai-chat-agent";
 import {
-  generateId,
-  streamText,
-  type StreamTextOnFinishCallback,
-  stepCountIs,
-  createUIMessageStream,
   convertToModelMessages,
+  createUIMessageStream,
   createUIMessageStreamResponse,
-  type ToolSet
+  type StreamTextOnFinishCallback,
+  streamText,
+  stepCountIs
 } from "ai";
+import { tools } from "./tools";
+import {
+  processToolCalls,
+  hasToolConfirmation,
+  getWeatherInformation
+} from "./utils";
 import { createWorkersAI } from 'workers-ai-provider';
-import { processToolCalls, cleanupMessages } from "./utils";
-import { tools, executions } from "./tools";
-import { env } from "cloudflare:workers";
-const workersai = createWorkersAI({ binding: env.AI });
-const model = workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b");
 
-// Cloudflare AI Gateway
-// const openai = createOpenAI({
-//   apiKey: env.OPENAI_API_KEY,
-//   baseURL: env.GATEWAY_BASE_URL,
-// });
+export class HumanInTheLoop extends AIChatAgent<Env> {
+  async onChatMessage(onFinish: StreamTextOnFinishCallback<{}>) {
+    const startTime = Date.now();
 
-/**
- * Chat Agent implementation that handles real-time AI chat interactions
- */
-export class Chat extends AIChatAgent<Env> {
-  /**
-   * Handles incoming chat messages and manages the response stream
-   */
-  async onChatMessage(
-    onFinish: StreamTextOnFinishCallback<ToolSet>,
-    _options?: { abortSignal?: AbortSignal }
-  ) {
-    // const mcpConnection = await this.mcp.connect(
-    //   "https://path-to-mcp-server/sse"
-    // );
+    const lastMessage = this.messages[this.messages.length - 1];
 
-    // Collect all tools, including MCP tools
-    const allTools = {
-      ...tools,
-      ...this.mcp.getAITools()
-    };
+    if (hasToolConfirmation(lastMessage)) {
+      // Process tool confirmations using UI stream
+      const stream = createUIMessageStream({
+        execute: async ({ writer }) => {
+          await processToolCalls(
+            { writer, messages: this.messages, tools },
+            { getWeatherInformation }
+          );
+        }
+      });
+      return createUIMessageStreamResponse({ stream });
+    }
 
-    const stream = createUIMessageStream({
-      execute: async ({ writer }) => {
-        // Clean up incomplete tool calls to prevent API errors
-        const cleanedMessages = cleanupMessages(this.messages);
+    const workersai = createWorkersAI({ binding: this.env.AI });
 
-        // Process any pending tool calls from previous messages
-        // This handles human-in-the-loop confirmations for tools
-        const processedMessages = await processToolCalls({
-          messages: cleanedMessages,
-          dataStream: writer,
-          tools: allTools,
-          executions
-        });
-
-        const result = streamText({
-          system: `You are a helpful assistant that can do various tasks... 
-
-${getSchedulePrompt({ date: new Date() })}
-
-If the user asks to schedule a task, use the schedule tool to schedule the task.
-`,
-
-          messages: convertToModelMessages(processedMessages),
-          model,
-          tools: allTools,
-          // Type boundary: streamText expects specific tool types, but base class uses ToolSet
-          // This is safe because our tools satisfy ToolSet interface (verified by 'satisfies' in tools.ts)
-          onFinish: onFinish as unknown as StreamTextOnFinishCallback<
-            typeof allTools
-          >,
-          stopWhen: stepCountIs(10)
-        });
-
-        writer.merge(result.toUIMessageStream());
-      }
+    // Use streamText directly and return with metadata
+    const result = streamText({
+      messages: convertToModelMessages(this.messages),
+      model: workersai("@cf/meta/llama-3.3-70b-instruct-fp8-fast" as any),
+      onFinish,
+      tools,
+      stopWhen: stepCountIs(5)
     });
 
-    return createUIMessageStreamResponse({ stream });
-  }
-  async executeTask(description: string, _task: Schedule<string>) {
-    await this.saveMessages([
-      ...this.messages,
-      {
-        id: generateId(),
-        role: "user",
-        parts: [
-          {
-            type: "text",
-            text: `Running scheduled task: ${description}`
-          }
-        ],
-        metadata: {
-          createdAt: new Date()
+    return result.toUIMessageStreamResponse({
+      messageMetadata: ({ part }) => {
+        // This is optional, purely for demo purposes in this example
+        if (part.type === "start") {
+          return {
+            model: "gpt-4o",
+            createdAt: Date.now(),
+            messageCount: this.messages.length
+          };
+        }
+        if (part.type === "finish") {
+          return {
+            responseTime: Date.now() - startTime,
+            totalTokens: part.totalUsage?.totalTokens
+          };
         }
       }
-    ]);
+    });
   }
 }
 
-/**
- * Worker entry point that routes incoming requests to the appropriate handler
- */
 export default {
   async fetch(request: Request, env: Env, _ctx: ExecutionContext) {
-    const url = new URL(request.url);
-
-    if (url.pathname === "/check-open-ai-key") {
-      const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
-      return Response.json({
-        success: hasOpenAIKey
-      });
-    }
     return (
-      // Route the request to our agent or return 404 if not found
       (await routeAgentRequest(request, env)) ||
       new Response("Not found", { status: 404 })
     );

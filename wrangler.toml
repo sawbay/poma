@@ -16,9 +16,9 @@ binding = "AI"
 remote = true
 
 [[durable_objects.bindings]]
-name = "Chat"
-class_name = "Chat"
+name = "HumanInTheLoop"
+class_name = "HumanInTheLoop"
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["Chat"]
+new_sqlite_classes = ["HumanInTheLoop"]
