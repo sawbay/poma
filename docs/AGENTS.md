@@ -15,12 +15,10 @@
        1. Identify asset type (blockchain, physical, stock) using heuristics + prior context.  
        2. Call balance/quote tools or external validators; flag unresolved fields with actionable prompts.  
        3. Enforce schema completeness (chain, address, unit, quantity, ticker) prior to readiness.
-     - **Staging management**: write to `/api/import-session` with detailed metadata (`source`, `confidence`, `pendingQuestions`, `notes`); support `stage`, `update-stage`, `commit`, and `reject` operations.
      - **Human-in-the-loop**: invoke `agent.waitForHuman()` when ready for approval, passing a payload summarizing staged changes so the UI can surface Approve/Decline controls.
      - **User guidance**: explain each required follow-up, provide examples, and summarize changes before routing to human approval.
    - Tooling (Cloudflare Agent toolkit IDs):
-     - `tool.portfolio.read` / `tool.portfolio.write` → KV state access.  
-     - `tool.import-session.read` / `tool.import-session.write` → Durable Object-backed staging.  
+     - `tool.portfolio.read` / `tool.portfolio.write` → KV state access.
      - `tool.balance.bitcoin`, `tool.balance.ethereum`, `tool.balance.solana` → on-chain lookups.  
      - `tool.prices.quote` → crypto + metals quotes (stocks TBD).  
      - Optional `tool.reference.lookup` → ticker metadata, unit conversions.  
@@ -81,9 +79,9 @@
 - **Portfolio view**
   - Pulls from `/api/portfolio` to render metrics, allocations, and holdings; price hydration handled client-side.
 - **Import workspace**
-  - Uses `/api/chat` and `/api/import-session` to drive conversational or manual staging flows and commit updates.
+  - Uses `/api/chat` to drive conversational commit updates.
   - Displays staged assets with readiness status and handles “price pending” stock entries until equities pricing is wired.
-- Implements the [Cloudflare Agents human-in-the-loop pattern](https://github.com/cloudflare/agents/tree/main/guides/human-in-the-loop): staged proposals surface Approve/Decline actions that feed the agent via `/api/import-session/decision`.
+  - Implements the [Cloudflare Agents human-in-the-loop pattern](https://github.com/cloudflare/agents/tree/main/guides/human-in-the-loop): staged proposals surface Approve/Decline actions.
 
 ### 7. Agent Prompt Seeds
 - **System**: “You are Portfolio Planner. Manage blockchain wallets (BTC/ETH/SOL), physical assets (gold troy ounces, USD cash), and stocks. Respond with JSON operations plus a concise human reply. Stage assets until data is validated.”
