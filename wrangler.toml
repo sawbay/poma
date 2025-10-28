@@ -1,0 +1,27 @@
+# For more details on configuring Wrangler, see:
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+name = "poma"
+main = "src/server.ts"
+compatibility_date = "2025-08-03"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+MODEL_NAME="@cf/meta/llama-4-scout-17b-16e-instruct"
+
+[observability]
+enabled = true
+
+[assets]
+directory = "public"
+
+[ai]
+binding = "AI"
+remote = true
+
+[[durable_objects.bindings]]
+name = "HumanInTheLoop"
+class_name = "HumanInTheLoop"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["HumanInTheLoop"]
