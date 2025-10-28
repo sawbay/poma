@@ -30,12 +30,12 @@ npm run dev
 ```
 This runs `wrangler dev`, serving the dashboard at `http://localhost:8787`.  
 UI routes:  
-- `/` – overview (metrics, chart, holdings, manual refresh)  
-- `/manage` – management console (holdings list + chat controls)  
+- `/` – portfolio overview (metrics, chart, holdings, manual refresh)  
+- `/imports` – import console (AI/manual intake, chat controls)  
 APIs:
 - `GET /api/portfolio` – current holdings summary
 - `POST /api/chat` – chat-driven mutations (`{ messages: [...] }`)
-- `POST /api/prices/refresh` – force a price fetch and summary rebuild
+- `POST /api/import-session` – (stub) manage staged import data
 
 ### Deploy
 Once satisfied locally:

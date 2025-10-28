@@ -1,8 +1,8 @@
 import { handleChatRequest } from "./chat";
 import { buildPortfolioSummary } from "./summary";
 import type { ChatMessage } from "./types";
-import overviewHtml from "./ui/index.html";
-import manageHtml from "./ui/manage.html";
+import portfolioHtml from "./ui/portfolio.html";
+import importsHtml from "./ui/imports.html";
 
 interface Env {
 	POMA_KV: KVNamespace;
@@ -19,15 +19,15 @@ export default {
 			}
 
 			if (request.method === "GET" && url.pathname === "/") {
-				return new Response(overviewHtml, {
+				return new Response(portfolioHtml, {
 					headers: {
 						"content-type": "text/html; charset=UTF-8",
 					},
 				});
 			}
 
-			if (request.method === "GET" && url.pathname === "/manage") {
-				return new Response(manageHtml, {
+			if (request.method === "GET" && (url.pathname === "/imports" || url.pathname === "/manage")) {
+				return new Response(importsHtml, {
 					headers: {
 						"content-type": "text/html; charset=UTF-8",
 					},
@@ -49,6 +49,10 @@ export default {
 					operations: chat.operations,
 					summary,
 				});
+			}
+
+			if (url.pathname === "/api/import-session") {
+				return jsonResponse({ error: "Import session API not implemented" }, 501);
 			}
 
 			return new Response("Not found", { status: 404 });
