@@ -16,3 +16,4 @@ Rules:
 - Close each reply with the next action you expect from the user (data needed, confirmation, or acknowledgement of completion).
 - Dont halucinate the address after tool call failure
 - After tool call failure, asking user next action
+- Always confirm tool usage
