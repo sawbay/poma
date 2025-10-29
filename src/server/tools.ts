@@ -117,10 +117,21 @@ async function readPortfolio(manager: AgentStateManager, userId: string): Promis
   if (!stored) {
     return createEmptyPortfolio(userId);
   }
-  return PortfolioStateSchema.parse({
+  const parsed = PortfolioStateSchema.parse({
     ...stored,
     userId: stored.userId ?? userId
   });
+  const assetsWithSummary = parsed.assets.map((asset) => ({
+    ...asset,
+    metadata: {
+      ...(asset.metadata ?? {}),
+      summary: createHoldingSummary(asset)
+    }
+  }));
+  return {
+    ...parsed,
+    assets: assetsWithSummary
+  };
 }
 
 async function writePortfolio(
@@ -164,6 +175,16 @@ function toStoredAsset(asset: z.infer<typeof AddAssetSchema>): z.infer<typeof St
     quantity: asset.quantity ?? 0,
     metadata: asset.metadata ?? {}
   };
+}
+
+function createHoldingSummary(asset: z.infer<typeof StoredAssetSchema>) {
+  const quantityText =
+    asset.quantity !== undefined ? String(asset.quantity) : "unknown";
+  const displayUnit = asset.symbol ?? asset.unit ?? "";
+  const unitText = displayUnit ? ` ${displayUnit}` : "";
+  const chainText = asset.chain ? ` on ${asset.chain}` : "";
+  const addressText = asset.address ?? "unknown";
+  return `${asset.label} (${asset.category}) - quantity: ${quantityText}${unitText}${chainText}. Address: ${addressText}`;
 }
 
 async function applyPortfolioWrite(
@@ -232,9 +253,11 @@ async function applyPortfolioWrite(
 
   await writePortfolio(manager, userId, nextState);
 
+  const enriched = await readPortfolio(manager, userId);
+
   return {
     message: `Portfolio updated: ${summarizeCounters(counters)}.`,
-    portfolio: nextState
+    portfolio: enriched
   };
 }
 
