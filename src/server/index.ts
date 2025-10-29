@@ -45,11 +45,13 @@ export class PomaAgent extends AIChatAgent<Env, PortfolioAgentState> {
     }
 
     const workersai = createWorkersAI({ binding: this.env.AI });
+    const model = workersai(this.env.MODEL_NAME as any);
 
     // Use streamText directly and return with metadata
     const result = streamText({
-      messages: convertToModelMessages(this.messages, { tools }),
-      model: workersai(this.env.MODEL_NAME as any),
+      system: this.systemPrompt(),
+      messages: convertToModelMessages(this.messages),
+      model,
       onFinish,
       tools,
       stopWhen: stepCountIs(5)
