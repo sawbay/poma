@@ -4,7 +4,6 @@ import { z } from "zod";
 
 const DEFAULT_USER_ID = "single-user";
 const PORTFOLIO_KEY_PREFIX = "portfolio:";
-const IMPORT_SESSION_KEY_PREFIX = "import-session:";
 
 const ChainSchema = z.enum(["bitcoin", "ethereum", "solana"]);
 const AssetCategorySchema = z.enum(["blockchain", "physical", "stock"]);
@@ -74,51 +73,6 @@ export const PortfolioWriteInputSchema = z.object({
   approvedBy: z.string().optional()
 });
 
-const StagedAssetSchema = BaseAssetSchema.extend({
-  id: z.string().optional(),
-  provisionalId: z.string().optional(),
-  status: z.enum(["pending", "ready", "committed", "rejected"]).default("pending"),
-  requiresApproval: z.boolean().default(true),
-  pendingQuestions: z.array(z.string()).default([]),
-  source: z.string().optional(),
-  confidence: z.number().min(0).max(1).optional()
-});
-
-const ImportSessionStatusSchema = z.enum([
-  "open",
-  "awaiting_approval",
-  "approved",
-  "rejected",
-  "committed",
-  "discarded"
-]);
-
-const ImportSessionSchema = z.object({
-  sessionId: z.string(),
-  status: ImportSessionStatusSchema,
-  staged: z.array(StagedAssetSchema),
-  pendingQuestions: z.array(z.string()),
-  metadata: z.record(z.unknown()).optional(),
-  createdAt: z.string(),
-  updatedAt: z.string()
-});
-
-const ImportSessionReadInputSchema = z.object({
-  sessionId: z.string()
-});
-
-const ImportSessionWriteInputSchema = z.object({
-  sessionId: z.string(),
-  action: z
-    .enum(["upsert", "replace", "append", "clear", "update-status"])
-    .default("upsert"),
-  session: ImportSessionSchema.partial().omit({ sessionId: true }).optional(),
-  staged: z.array(StagedAssetSchema).optional(),
-  pendingQuestions: z.array(z.string()).optional(),
-  status: ImportSessionStatusSchema.optional(),
-  metadata: z.record(z.unknown()).optional()
-});
-
 const PricesQuoteInputSchema = z.object({
   symbols: z.array(z.string()).min(1),
   vsCurrency: z.string().default("USD")
@@ -130,15 +84,9 @@ const BalanceInputSchema = z.object({
 
 type PortfolioState = z.infer<typeof PortfolioStateSchema>;
 type PortfolioWriteInput = z.infer<typeof PortfolioWriteInputSchema>;
-type ImportSession = z.infer<typeof ImportSessionSchema>;
-type ImportSessionWriteInput = z.infer<typeof ImportSessionWriteInputSchema>;
 
 function portfolioKey(userId: string) {
   return `${PORTFOLIO_KEY_PREFIX}${userId}`;
-}
-
-function importSessionKey(sessionId: string) {
-  return `${IMPORT_SESSION_KEY_PREFIX}${sessionId}`;
 }
 
 function createEmptyPortfolio(userId: string): PortfolioState {
@@ -147,19 +95,6 @@ function createEmptyPortfolio(userId: string): PortfolioState {
     updatedAt: new Date(0).toISOString(),
     assets: [],
     metadata: {}
-  };
-}
-
-function createEmptyImportSession(sessionId: string): ImportSession {
-  const now = new Date(0).toISOString();
-  return {
-    sessionId,
-    status: "open",
-    staged: [],
-    pendingQuestions: [],
-    metadata: {},
-    createdAt: now,
-    updatedAt: now
   };
 }
 
@@ -180,32 +115,6 @@ async function writePortfolio(
   next: PortfolioState
 ): Promise<void> {
   await env.POMA_KV.put(portfolioKey(userId), JSON.stringify(next));
-}
-
-async function readImportSession(
-  env: Env,
-  sessionId: string
-): Promise<ImportSession> {
-  const stored = await env.POMA_KV.get<ImportSession>(
-    importSessionKey(sessionId),
-    "json"
-  );
-  if (!stored) {
-    return createEmptyImportSession(sessionId);
-  }
-  return ImportSessionSchema.parse(stored);
-}
-
-async function writeImportSession(
-  env: Env,
-  sessionId: string,
-  session: ImportSession
-): Promise<void> {
-  await env.POMA_KV.put(importSessionKey(sessionId), JSON.stringify(session));
-}
-
-async function deleteImportSession(env: Env, sessionId: string): Promise<void> {
-  await env.POMA_KV.delete(importSessionKey(sessionId));
 }
 
 function summarizeCounters(counters: {
@@ -305,91 +214,6 @@ async function applyPortfolioWrite(
     message: `Portfolio updated: ${summarizeCounters(counters)}.`,
     portfolio: nextState
   };
-}
-
-async function applyImportSessionWrite(
-  env: Env,
-  input: ImportSessionWriteInput
-): Promise<ImportSession | { sessionId: string; cleared: true }> {
-  const payload = ImportSessionWriteInputSchema.parse(input);
-  const current = await readImportSession(env, payload.sessionId);
-
-  if (payload.action === "clear") {
-    await deleteImportSession(env, payload.sessionId);
-    return { sessionId: payload.sessionId, cleared: true as const };
-  }
-
-  const now = new Date().toISOString();
-  let updated: ImportSession = {
-    ...current,
-    updatedAt: now
-  };
-
-  if (payload.action === "replace") {
-    const session = payload.session ?? {};
-    updated = ImportSessionSchema.parse({
-      sessionId: payload.sessionId,
-      staged: session.staged ?? payload.staged ?? [],
-      pendingQuestions: session.pendingQuestions ?? payload.pendingQuestions ?? [],
-      status: session.status ?? payload.status ?? current.status,
-      metadata: session.metadata ?? payload.metadata ?? current.metadata ?? {},
-      createdAt: current.createdAt ?? now,
-      updatedAt: now
-    });
-  } else {
-    if (payload.staged?.length) {
-      const staged = payload.action === "append"
-        ? [...updated.staged, ...payload.staged]
-        : payload.staged;
-      updated = {
-        ...updated,
-        staged
-      };
-    }
-
-    if (payload.pendingQuestions) {
-      updated = {
-        ...updated,
-        pendingQuestions:
-          payload.action === "append"
-            ? [...updated.pendingQuestions, ...payload.pendingQuestions]
-            : payload.pendingQuestions
-      };
-    }
-
-    if (payload.metadata) {
-      updated = {
-        ...updated,
-        metadata: {
-          ...(updated.metadata ?? {}),
-          ...payload.metadata
-        }
-      };
-    }
-
-    if (payload.status || payload.action === "update-status") {
-      updated = {
-        ...updated,
-        status: payload.status ?? updated.status
-      };
-    }
-
-    if (payload.session) {
-      const sessionPatch = payload.session;
-      updated = {
-        ...updated,
-        staged: sessionPatch.staged ?? updated.staged,
-        pendingQuestions: sessionPatch.pendingQuestions ?? updated.pendingQuestions,
-        metadata: sessionPatch.metadata
-          ? { ...(updated.metadata ?? {}), ...sessionPatch.metadata }
-          : updated.metadata,
-        status: sessionPatch.status ?? updated.status
-      };
-    }
-  }
-
-  await writeImportSession(env, payload.sessionId, updated);
-  return updated;
 }
 
 async function fetchBitcoinBalance(address: string): Promise<number> {
