@@ -3,7 +3,6 @@ import type { AITool } from "agents/ai-react";
 import { z } from "zod";
 
 const DEFAULT_USER_ID = "single-user";
-const PORTFOLIO_KEY_PREFIX = "portfolio:";
 
 const ChainSchema = z.enum(["bitcoin", "ethereum", "solana"]);
 const AssetCategorySchema = z.enum(["blockchain", "physical", "stock"]);
@@ -82,11 +81,21 @@ const BalanceInputSchema = z.object({
   address: z.string().min(1, "Wallet address is required")
 });
 
-type PortfolioState = z.infer<typeof PortfolioStateSchema>;
-type PortfolioWriteInput = z.infer<typeof PortfolioWriteInputSchema>;
+const AgentStateSchema = z.object({
+  portfolios: z.record(PortfolioStateSchema).default({})
+});
 
-function portfolioKey(userId: string) {
-  return `${PORTFOLIO_KEY_PREFIX}${userId}`;
+type AgentStateManager = {
+  state: PortfolioAgentState | undefined;
+  setState(state: PortfolioAgentState): void;
+};
+
+export type PortfolioState = z.infer<typeof PortfolioStateSchema>;
+export type PortfolioWriteInput = z.infer<typeof PortfolioWriteInputSchema>;
+export type PortfolioAgentState = z.infer<typeof AgentStateSchema>;
+
+export function createDefaultAgentState(): PortfolioAgentState {
+  return { portfolios: {} };
 }
 
 function createEmptyPortfolio(userId: string): PortfolioState {
@@ -98,8 +107,13 @@ function createEmptyPortfolio(userId: string): PortfolioState {
   };
 }
 
-async function readPortfolio(env: Env, userId: string): Promise<PortfolioState> {
-  const stored = await env.POMA_KV.get<PortfolioState>(portfolioKey(userId), "json");
+function getAgentState(manager: AgentStateManager): PortfolioAgentState {
+  return AgentStateSchema.parse(manager.state ?? createDefaultAgentState());
+}
+
+async function readPortfolio(manager: AgentStateManager, userId: string): Promise<PortfolioState> {
+  const state = getAgentState(manager);
+  const stored = state.portfolios[userId];
   if (!stored) {
     return createEmptyPortfolio(userId);
   }
@@ -110,11 +124,19 @@ async function readPortfolio(env: Env, userId: string): Promise<PortfolioState> 
 }
 
 async function writePortfolio(
-  env: Env,
+  manager: AgentStateManager,
   userId: string,
   next: PortfolioState
 ): Promise<void> {
-  await env.POMA_KV.put(portfolioKey(userId), JSON.stringify(next));
+  const state = getAgentState(manager);
+  const nextState: PortfolioAgentState = {
+    ...state,
+    portfolios: {
+      ...state.portfolios,
+      [userId]: PortfolioStateSchema.parse(next)
+    }
+  };
+  manager.setState(nextState);
 }
 
 function summarizeCounters(counters: {
@@ -145,12 +167,12 @@ function toStoredAsset(asset: z.infer<typeof AddAssetSchema>): z.infer<typeof St
 }
 
 async function applyPortfolioWrite(
-  env: Env,
+  manager: AgentStateManager,
   input: PortfolioWriteInput
 ): Promise<{ message: string; portfolio: PortfolioState }> {
   const payload = PortfolioWriteInputSchema.parse(input);
   const { userId } = payload;
-  const state = await readPortfolio(env, userId);
+  const state = await readPortfolio(manager, userId);
   const nextAssets = [...state.assets];
   const counters = { added: 0, updated: 0, removed: 0 };
 
@@ -208,7 +230,7 @@ async function applyPortfolioWrite(
     metadata
   };
 
-  await writePortfolio(env, userId, nextState);
+  await writePortfolio(manager, userId, nextState);
 
   return {
     message: `Portfolio updated: ${summarizeCounters(counters)}.`,
@@ -229,7 +251,7 @@ async function fetchBitcoinBalance(address: string): Promise<number> {
 }
 
 async function fetchEthereumBalance(address: string): Promise<number> {
-  const response = await fetch("https://cloudflare-eth.com", {
+  const response = await fetch("https://eth.llamarpc.com", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -357,11 +379,11 @@ async function fetchPrices(symbols: string[], vsCurrency: string) {
 }
 
 export async function executePortfolioWrite(
-  env: Env,
+  manager: AgentStateManager,
   input: unknown
 ): Promise<string> {
   try {
-    const { message } = await applyPortfolioWrite(env, input as PortfolioWriteInput);
+    const { message } = await applyPortfolioWrite(manager, input as PortfolioWriteInput);
     return message;
   } catch (error) {
     const message =
@@ -370,12 +392,12 @@ export async function executePortfolioWrite(
   }
 }
 
-export function createServerTools(env: Env) {
+export function createServerTools(agent: AgentStateManager) {
   const portfolioRead = tool({
     description: "Fetch the current canonical portfolio snapshot for a user.",
     inputSchema: PortfolioReadInputSchema,
     execute: async ({ userId = DEFAULT_USER_ID }) =>
-      readPortfolio(env, userId)
+      readPortfolio(agent, userId)
   });
 
   const portfolioWrite = tool({

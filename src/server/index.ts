@@ -1,5 +1,6 @@
 import { routeAgentRequest } from "agents";
 import { AIChatAgent } from "agents/ai-chat-agent";
+import type { AgentContext } from "agents";
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -9,17 +10,27 @@ import {
   stepCountIs,
   tool
 } from "ai";
-import { createServerTools, executePortfolioWrite } from "./tools";
+import {
+  createServerTools,
+  executePortfolioWrite,
+  createDefaultAgentState
+} from "./tools";
+import type { PortfolioAgentState } from "./tools";
 import { processToolCalls, hasToolConfirmation } from "./utils";
 import { createWorkersAI } from 'workers-ai-provider';
 import systemprompt from './prompts/systemprompt.txt';
 
-export class PomaAgent extends AIChatAgent<Env> {
+export class PomaAgent extends AIChatAgent<Env, PortfolioAgentState> {
+  constructor(ctx: AgentContext, env: Env) {
+    super(ctx, env);
+    this.initialState = createDefaultAgentState();
+  }
+
   async onChatMessage(onFinish: StreamTextOnFinishCallback<{}>) {
     const startTime = Date.now();
 
     const lastMessage = this.messages[this.messages.length - 1];
-    const tools = createServerTools(this.env);
+    const tools = createServerTools(this);
 
     if (hasToolConfirmation(lastMessage)) {
       // Process tool confirmations using UI stream
@@ -27,7 +38,7 @@ export class PomaAgent extends AIChatAgent<Env> {
         execute: async ({ writer }) => {
           await processToolCalls(
             { writer, messages: this.messages, tools },
-            { "tool.portfolio.write": (input) => executePortfolioWrite(this.env, input) }
+            { "tool.portfolio.write": (input) => executePortfolioWrite(this, input) }
           );
         }
       });

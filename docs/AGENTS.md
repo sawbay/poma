@@ -39,8 +39,8 @@
    - Triggered manually (“analyze today”) or via cron once the analytics loop is ready.
 
 ### 3. Data Surface
-- `POMA_KV`
-  - `portfolio:<user>` → canonical list of assets (id, schema metadata, quantities, notes).
+- Agent state (`PomaAgent.state`)
+  - `portfolios[userId]` → canonical list of assets (id, schema metadata, quantities, notes) persisted inside the Durable Object SQLite store.
 - `LOGS_DO`
   - Durable Object that stores planner transcripts, approvals, tool invocations, and audit trails.
 - Human decision events (approve/reject) are captured and replayed to the agent via `agent.resume()` following the Cloudflare Agents HITL guide; on approval, the agent immediately calls write tools with the approved operations.
@@ -48,7 +48,7 @@
 
 ### 4. Chat + Import Flow
 1. On UI, it calls `POST /agents/poma/chat` (handled by `routeAgentRequest`).
-2. `routeAgentRequest` instantiates `PomaAgent`, which pulls the latest history and wires up the server toolset via `createServerTools(this.env)`—portfolio read/write stubs, import helpers, balance lookups, and price quotes.
+2. `routeAgentRequest` instantiates `PomaAgent`, which pulls the latest history and wires up the server toolset via `createServerTools(this)`—portfolio read/write stubs, import helpers, balance lookups, and price quotes.
 3. When the most recent message contains a human decision for `tool.portfolio.write`, `hasToolConfirmation` triggers the confirmation branch. `processToolCalls` replays the captured `part.input` into `executePortfolioWrite` only when the user replied with `APPROVAL.YES` (`"Yes, confirmed."`). A `"No, denied."` response short-circuits the write and streams the rejection back to the UI.
 4. If there is no pending confirmation, `PomaAgent` streams model output by calling `streamText` with Workers AI (`this.env.AI`, `MODEL_NAME`) and the same toolset. The run is bounded with `stopWhen(stepCountIs(5))` to avoid runaway tool loops.
 5. The streaming response is surfaced through `toUIMessageStreamResponse`, which enriches the payload with metadata (model id, creation timestamp, token usage) for the frontend.
