@@ -50,7 +50,7 @@ export class PomaAgent extends AIChatAgent<Env, PortfolioAgentState> {
     // Use streamText directly and return with metadata
     const result = streamText({
       system: this.systemPrompt(),
-      messages: convertToModelMessages(this.messages),
+      messages: convertToModelMessages(this.messages, { tools }),
       model,
       onFinish,
       tools,
