@@ -27,5 +27,6 @@ name = "PomaAgent"
 class_name = "PomaAgent"
 
 [[migrations]]
-tag = "v2"
-renamed_classes = [{from = "HumanInTheLoop", to = "PomaAgent" }]
+tag = "v1"
+new_sqlite_classes = ["PomaAgent"]
+# renamed_classes = [{from = "HumanInTheLoop", to = "PomaAgent" }]

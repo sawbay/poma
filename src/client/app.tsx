@@ -7,6 +7,36 @@ import { useAgentChat, type AITool } from "agents/ai-react";
 import { useAgent } from "agents/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const AGENT_ID_STORAGE_KEY = "poma-agent-id";
+
+const generateAgentId = (): string => {
+  if (
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.crypto?.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+};
+
+const getPersistedAgentId = (): string => {
+  if (typeof window === "undefined") {
+    return generateAgentId();
+  }
+
+  const existingId = window.localStorage.getItem(AGENT_ID_STORAGE_KEY);
+  if (existingId) {
+    return existingId;
+  }
+
+  const newId = generateAgentId();
+  window.localStorage.setItem(AGENT_ID_STORAGE_KEY, newId);
+  return newId;
+};
+
 export default function Chat() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [showMetadata, setShowMetadata] = useState(true);
@@ -33,8 +63,14 @@ export default function Chat() {
     document.documentElement.setAttribute("data-theme", newTheme);
   };
 
+  const agentIdRef = useRef<string>("");
+  if (!agentIdRef.current) {
+    agentIdRef.current = getPersistedAgentId();
+  }
+
   const agent = useAgent({
     agent: "poma-agent",
+    name: agentIdRef.current!,
     onMessage: (message) => {
       console.log("---> ", message.data);
     },
