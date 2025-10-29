@@ -6,7 +6,8 @@ import {
   createUIMessageStreamResponse,
   type StreamTextOnFinishCallback,
   streamText,
-  stepCountIs
+  stepCountIs,
+  tool
 } from "ai";
 import { createServerTools, executePortfolioWrite } from "./tools";
 import { processToolCalls, hasToolConfirmation } from "./utils";
@@ -37,7 +38,7 @@ export class PomaAgent extends AIChatAgent<Env> {
 
     // Use streamText directly and return with metadata
     const result = streamText({
-      messages: convertToModelMessages(this.messages),
+      messages: convertToModelMessages(this.messages, { tools }),
       model: workersai(this.env.MODEL_NAME as any),
       onFinish,
       tools,

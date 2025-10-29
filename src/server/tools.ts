@@ -404,7 +404,8 @@ export function createServerTools(env: Env) {
           symbol: "BTC",
           quantity: 0,
           status: "error",
-          message: error instanceof Error ? error.message : "Failed to fetch balance"
+          message: `Failed to fetch balance at address ${address}. Error: ${error instanceof Error ? error.message : "Unknown error"
+            }`
         };
       }
     }
@@ -429,7 +430,8 @@ export function createServerTools(env: Env) {
           symbol: "ETH",
           quantity: 0,
           status: "error",
-          message: error instanceof Error ? error.message : "Failed to fetch balance"
+          message: `Failed to fetch balance at address ${address}. Error: ${error instanceof Error ? error.message : "Unknown error"
+            }`
         };
       }
     }
@@ -454,7 +456,8 @@ export function createServerTools(env: Env) {
           symbol: "SOL",
           quantity: 0,
           status: "error",
-          message: error instanceof Error ? error.message : "Failed to fetch balance"
+          message: `Failed to fetch balance at address ${address}. Error: ${error instanceof Error ? error.message : "Unknown error"
+            }`
         };
       }
     }
