@@ -6,7 +6,7 @@ compatibility_date = "2025-08-03"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-MODEL_NAME="@cf/openai/gpt-oss-20b"
+MODEL_NAME="@cf/mistralai/mistral-small-3.1-24b-instruct"
 
 [observability]
 enabled = true
