@@ -71,9 +71,6 @@ export default function Chat() {
   const agent = useAgent({
     agent: "poma-agent",
     name: agentIdRef.current!,
-    onMessage: (message) => {
-      console.log("---> ", message.data);
-    },
   });
 
   const { messages, sendMessage, addToolResult, clearHistory } = useAgentChat({
