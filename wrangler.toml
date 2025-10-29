@@ -18,10 +18,6 @@ directory = "public"
 binding = "AI"
 remote = true
 
-[[kv_namespaces]]
-binding="POMA_KV"      
-id="7531ca4ca6f94f209d792bd43f25ed03"
-
 [[durable_objects.bindings]]
 name = "PomaAgent"
 class_name = "PomaAgent"
@@ -29,4 +25,4 @@ class_name = "PomaAgent"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PomaAgent"]
-# renamed_classes = [{from = "HumanInTheLoop", to = "PomaAgent" }]
+
