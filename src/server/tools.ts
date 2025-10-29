@@ -561,19 +561,6 @@ export function createServerTools(env: Env) {
     // no execute: enforced via human-in-the-loop confirmation
   });
 
-  const importSessionRead = tool({
-    description: "Load the current import session state for a given session ID.",
-    inputSchema: ImportSessionReadInputSchema,
-    execute: async ({ sessionId }) => readImportSession(env, sessionId)
-  });
-
-  const importSessionWrite = tool({
-    description:
-      "Upsert the import session state with staged assets, pending questions, or status updates.",
-    inputSchema: ImportSessionWriteInputSchema,
-    execute: async (input) => applyImportSessionWrite(env, input)
-  });
-
   const bitcoinBalance = tool({
     description: "Fetch live Bitcoin balance for a wallet address.",
     inputSchema: BalanceInputSchema,
