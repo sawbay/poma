@@ -6,7 +6,7 @@ compatibility_date = "2025-08-03"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-MODEL_NAME="@hf/nousresearch/hermes-2-pro-mistral-7b"
+MODEL_NAME="@cf/openai/gpt-oss-20b"
 
 [observability]
 enabled = true
