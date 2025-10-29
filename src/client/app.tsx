@@ -184,7 +184,7 @@ export default function Chat() {
               <strong>Human-in-Loop:</strong> ✓ Enabled
             </div>
             <div>
-              <strong>Session ID:</strong> {agent.id || "Active"}
+              <strong>Session ID:</strong> {agentIdRef.current! || "Active"}
             </div>
             {lastResponseTime && (
               <div>
