@@ -413,22 +413,11 @@ export function createServerTools(agent: AgentStateManager) {
     execute: async ({ address }) => {
       try {
         const quantity = await fetchBitcoinBalance(address);
-        return {
-          chain: "bitcoin",
-          symbol: "BTC",
-          quantity,
-          status: "ok",
-          fetchedAt: new Date().toISOString()
-        };
+        const summary = `Balance of ${address}: ${quantity} BTC`;
+        return summary;
       } catch (error) {
-        return {
-          chain: "bitcoin",
-          symbol: "BTC",
-          quantity: 0,
-          status: "error",
-          message: `Failed to fetch balance at address ${address}. Error: ${error instanceof Error ? error.message : "Unknown error"
-            }`
-        };
+        const summary = "Balance lookup failed";
+        return summary;
       }
     }
   });
@@ -439,26 +428,11 @@ export function createServerTools(agent: AgentStateManager) {
     execute: async ({ address }) => {
       try {
         const quantity = await fetchEthereumBalance(address);
-        const summary = `Balance: ${quantity} ETH`;
-        return {
-          chain: "ethereum",
-          symbol: "ETH",
-          quantity,
-          status: "ok",
-          fetchedAt: new Date().toISOString(),
-          summary
-        };
+        const summary = `Balance of ${address}: ${quantity} ETH`;
+        return summary;
       } catch (error) {
         const summary = "Balance lookup failed";
-        return {
-          chain: "ethereum",
-          symbol: "ETH",
-          quantity: 0,
-          status: "error",
-          summary,
-          message: `Failed to fetch balance at address ${address}. Error: ${error instanceof Error ? error.message : "Unknown error"
-            }`
-        };
+        return summary;
       }
     }
   });
@@ -469,22 +443,11 @@ export function createServerTools(agent: AgentStateManager) {
     execute: async ({ address }) => {
       try {
         const quantity = await fetchSolanaBalance(address);
-        return {
-          chain: "solana",
-          symbol: "SOL",
-          quantity,
-          status: "ok",
-          fetchedAt: new Date().toISOString()
-        };
+        const summary = `Balance of ${address}: ${quantity} SOL`;
+        return summary;
       } catch (error) {
-        return {
-          chain: "solana",
-          symbol: "SOL",
-          quantity: 0,
-          status: "error",
-          message: `Failed to fetch balance at address ${address}. Error: ${error instanceof Error ? error.message : "Unknown error"
-            }`
-        };
+        const summary = "Balance lookup failed";
+        return summary;
       }
     }
   });

@@ -8,7 +8,6 @@ import {
   type StreamTextOnFinishCallback,
   streamText,
   stepCountIs,
-  tool
 } from "ai";
 import {
   createServerTools,
