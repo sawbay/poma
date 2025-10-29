@@ -439,19 +439,23 @@ export function createServerTools(agent: AgentStateManager) {
     execute: async ({ address }) => {
       try {
         const quantity = await fetchEthereumBalance(address);
+        const summary = `Balance: ${quantity} ETH`;
         return {
           chain: "ethereum",
           symbol: "ETH",
           quantity,
           status: "ok",
-          fetchedAt: new Date().toISOString()
+          fetchedAt: new Date().toISOString(),
+          summary
         };
       } catch (error) {
+        const summary = "Balance lookup failed";
         return {
           chain: "ethereum",
           symbol: "ETH",
           quantity: 0,
           status: "error",
+          summary,
           message: `Failed to fetch balance at address ${address}. Error: ${error instanceof Error ? error.message : "Unknown error"
             }`
         };
