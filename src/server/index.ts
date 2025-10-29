@@ -11,6 +11,7 @@ import {
 import { createServerTools, executePortfolioWrite } from "./tools";
 import { processToolCalls, hasToolConfirmation } from "./utils";
 import { createWorkersAI } from 'workers-ai-provider';
+import systemprompt from './prompts/systemprompt.txt';
 
 export class PomaAgent extends AIChatAgent<Env> {
   async onChatMessage(onFinish: StreamTextOnFinishCallback<{}>) {
@@ -61,6 +62,10 @@ export class PomaAgent extends AIChatAgent<Env> {
         }
       }
     });
+  }
+
+  systemPrompt() {
+    return systemprompt;
   }
 }
 

@@ -47,28 +47,27 @@
 - Client fetches live prices directly; worker summaries return raw assets with zeroed price/value fields that the browser enriches.
 
 ### 4. Chat + Import Flow
-1. User interacts in the Imports console at `/imports` (chat or CSV).
-2. Browser sends `{ sessionId, messages }` to `/api/chat`.
-3. Worker loads portfolio snapshot and conversation context, then forwards history + portfolio state + session metadata to the planner through `agent.run` (streaming enabled).
-4. Planner streams intermediate reasoning; when validations pass it calls `agent.waitForHuman()` with the exact operations it will execute once approved:
+1. On UI, it calls `POST /agents/poma/chat` (handled by `routeAgentRequest`).
+2. `routeAgentRequest` instantiates `PomaAgent`, which pulls the latest history and wires up the server toolset via `createServerTools(this.env)`—portfolio read/write stubs, import helpers, balance lookups, and price quotes.
+3. When the most recent message contains a human decision for `tool.portfolio.write`, `hasToolConfirmation` triggers the confirmation branch. `processToolCalls` replays the captured `part.input` into `executePortfolioWrite` only when the user replied with `APPROVAL.YES` (`"Yes, confirmed."`). A `"No, denied."` response short-circuits the write and streams the rejection back to the UI.
+4. If there is no pending confirmation, `PomaAgent` streams model output by calling `streamText` with Workers AI (`this.env.AI`, `MODEL_NAME`) and the same toolset. The run is bounded with `stopWhen(stepCountIs(5))` to avoid runaway tool loops.
+5. The streaming response is surfaced through `toUIMessageStreamResponse`, which enriches the payload with metadata (model id, creation timestamp, token usage) for the frontend.
+6. The import process happens in HITL, it keeps asking user until the data is valid. Once valid, The agent proposes to use tool `tool.portfolio.write`.
+7. Human approval is sent back as a UI message part with the tool name, original arguments, and confirmation text, for example:
    ```json
    {
-     "reply": "All set to import two assets. Confirm?",
-     "operations": [
-       { "type": "add", "asset": { "...": "..." }, "requiresApproval": true },
-       { "type": "update", "assetId": "...", "changes": { "...": "..." }, "requiresApproval": true }
-     ],
-     "followUps": ["Need the Ethereum address checksum."],
-     "nextAction": "WAIT_FOR_HUMAN",
-     "waitForHuman": {
-       "event": "portfolio_import.review",
-       "payload": { "sessionId": "...", "operations": ["..."] }
-     }
+     "type": "tool-tool.portfolio.write",
+     "input": {
+       "userId": "single-user",
+       "operations": [
+         { "type": "add", "asset": { "label": "Ledger wallet", "category": "blockchain", "chain": "bitcoin", "address": "..." } }
+       ],
+       "reason": "CSV import"
+     },
+     "output": "Yes, confirmed."
    }
    ```
-5. Worker returns `{ reply, operations, followUps }` to the client and logs the pending decision in `LOGS_DO`.
-6. UI renders approval controls; user response is posted to the decision endpoint (e.g. `/api/portfolio/decision`), which resumes the agent run with `agent.resume({ event: "portfolio_import.review", data: { approved, notes } })`.
-7. On approval, the agent immediately invokes `tool.portfolio.write` with the queued operations and emits a confirmation reply; on rejection, it records the notes and requests additional inputs without applying any writes.
+   `processToolCalls` streams the portfolio write summary (e.g. `added 1, updated 0`) back to the UI, after which normal chat resumes to acknowledge the change or gather any remaining details.
 
 ### 5. Price + Analysis Loop
 - Current milestone: prices fetched in-browser (CoinGecko crypto, gold API, manual stock placeholder). Worker does not cache prices.
@@ -83,14 +82,27 @@
   - Displays proposed operations awaiting approval and handles “price pending” stock entries until equities pricing is wired.
   - Implements the [Cloudflare Agents human-in-the-loop pattern](https://github.com/cloudflare/agents/tree/main/guides/human-in-the-loop): proposals surface Approve/Decline actions that resume the agent to apply tool-based writes.
 
-### 7. Agent Prompt Seeds
-- **System**: “You are Portfolio Planner. Manage blockchain wallets (BTC/ETH/SOL), physical assets (gold troy ounces, USD cash), and stocks. Respond with JSON operations plus a concise human reply. Do not call write tools until the human approves the proposed operations.”
-- **Instructions**:
-  - Never hallucinate addresses or tickers; validate via tools or request clarification.
-  - Reject unsupported chains or unknown asset types.
-  - Quantities must be numeric; omit if unknown and ask for the value.
-  - Reference existing assets by `id`/`label`.
-  - Use follow-up questions until each proposed operation has all required fields and validation.
+### 7. Agent System Prompt
+Use this base prompt when instantiating the planner agent:
+
+```text
+You are the POMA portfolio planner agent running on Cloudflare Agents.
+- Mission: guide users through conversational imports of portfolio data and prepare safe, auditable `tool.portfolio.write` operations.
+- Tooling: `tool.portfolio.read`, `tool.portfolio.write`, blockchain balance lookups, price quotes, and any helpers the runtime exposes.
+
+Workflow:
+1. Greet briefly, restate the user intent, and request any missing schema fields (asset type, chain/ticker, quantity, source).
+2. Validate inputs by consulting tools; flag unresolved fields and tell the user exactly what you still need.
+3. Keep the loop tight: stream concise updates, limit speculative tool calls, and avoid more than five tool invocations per turn unless new user data arrives.
+4. Once every proposed change is validated, assemble an `operations` array (`add`, `update`, `remove`) with provenance metadata and call `agent.waitForHuman()` with a clear approval summary.
+5. When resumed with approval, immediately call `tool.portfolio.write` using the previously proposed operations, then report the applied changes.
+
+Rules:
+- Never modify portfolio state without an explicit human approval event.
+- Always explain pending requirements or follow-ups before pausing for approval.
+- Surface conflicts or risky deltas and recommend clarification steps.
+- Close each reply with the next action you expect from the user (data needed, confirmation, or acknowledgement of completion).
+```
 
 ### 8. Next Steps Checklist
 1. Finalize Worker bindings in `wrangler.jsonc` (`POMA_KV`, `LOGS_DO`, optional Workers AI).  

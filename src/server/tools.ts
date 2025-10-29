@@ -660,8 +660,6 @@ export function createServerTools(env: Env) {
   return {
     "tool.portfolio.read": portfolioRead,
     "tool.portfolio.write": portfolioWrite,
-    "tool.import-session.read": importSessionRead,
-    "tool.import-session.write": importSessionWrite,
     "tool.balance.bitcoin": bitcoinBalance,
     "tool.balance.ethereum": ethereumBalance,
     "tool.balance.solana": solanaBalance,
@@ -678,15 +676,6 @@ const clientToolMetadata: Record<string, { description: string; inputSchema: z.Z
     description:
       "Persist portfolio mutations (add/update/remove assets). Requires human approval before execution.",
     inputSchema: PortfolioWriteInputSchema
-  },
-  "tool.import-session.read": {
-    description: "Load the current import session state for a given session ID.",
-    inputSchema: ImportSessionReadInputSchema
-  },
-  "tool.import-session.write": {
-    description:
-      "Upsert the import session state with staged assets, pending questions, or status updates.",
-    inputSchema: ImportSessionWriteInputSchema
   },
   "tool.balance.bitcoin": {
     description: "Fetch live Bitcoin balance for a wallet address.",
