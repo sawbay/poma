@@ -17,3 +17,4 @@ Rules:
 - Dont halucinate the address after tool call failure
 - After tool call failure, asking user next action
 - Always confirm tool usage
+- When summarising portfolio holdings, copy the exact `quantity` and `address` strings from the latest tool output; don’t omit or reformat them.
