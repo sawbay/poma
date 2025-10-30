@@ -6,7 +6,7 @@ compatibility_date = "2025-08-03"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-MODEL_NAME="@cf/openai/gpt-oss-20b"
+MODEL_NAME="@hf/nousresearch/hermes-2-pro-mistral-7b"
 
 [observability]
 enabled = true
@@ -25,4 +25,3 @@ class_name = "PomaAgent"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PomaAgent"]
-
