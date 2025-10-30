@@ -6,6 +6,9 @@ const BalanceInputSchema = z.object({
   address: z.string().min(1, "Wallet address is required")
 });
 
+const formatAddress = (address: string) =>
+  address.length > 10 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
+
 async function fetchBitcoinBalance(address: string): Promise<number> {
   const url = `https://blockchain.info/rawaddr/${encodeURIComponent(
     address
@@ -69,7 +72,7 @@ export const bitcoinBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchBitcoinBalance(address);
-      const summary = `Balance of ${address}: ${quantity} BTC`;
+      const summary = `Balance of ${formatAddress(address)}: ${quantity} BTC`;
       return summary;
     } catch (error) {
       const summary = "Balance lookup failed";
@@ -84,9 +87,7 @@ export const ethereumBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchEthereumBalance(address);
-      const displayAddress =
-        address.length > 10 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
-      const summary = `Balance of ${displayAddress}: ${quantity} ETH`;
+      const summary = `Balance of ${formatAddress(address)}: ${quantity} ETH`;
       return summary;
     } catch (error) {
       const summary = "Balance lookup failed";
@@ -101,7 +102,7 @@ export const solanaBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchSolanaBalance(address);
-      const summary = `Balance of ${address}: ${quantity} SOL`;
+      const summary = `Balance of ${formatAddress(address)}: ${quantity} SOL`;
       return summary;
     } catch (error) {
       const summary = "Balance lookup failed";
