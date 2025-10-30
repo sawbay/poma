@@ -6,6 +6,21 @@ const BalanceInputSchema = z.object({
   address: z.string().min(1, "Wallet address is required")
 });
 
+const formatAddress = (address: string) =>
+  address.length > 10 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
+
+const buildBalanceResult = (address: string, quantity: number, symbol: string) => {
+  const displayAddress = formatAddress(address);
+  const summary = `Balance of ${displayAddress}: ${quantity} ${symbol}`;
+  return {
+    address,
+    displayAddress,
+    quantity,
+    symbol,
+    summary
+  };
+};
+
 async function fetchBitcoinBalance(address: string): Promise<number> {
   const url = `https://blockchain.info/rawaddr/${encodeURIComponent(
     address
@@ -69,11 +84,9 @@ export const bitcoinBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchBitcoinBalance(address);
-      const summary = `${quantity} BTC`;
-      return summary;
+      return buildBalanceResult(address, quantity, "BTC");
     } catch (error) {
-      const summary = "Balance lookup failed";
-      return summary;
+      return { summary: "Balance lookup failed" };
     }
   }
 });
@@ -84,11 +97,9 @@ export const ethereumBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchEthereumBalance(address);
-      const summary = `${quantity} ETH`;
-      return summary;
+      return buildBalanceResult(address, quantity, "ETH");
     } catch (error) {
-      const summary = "Balance lookup failed";
-      return summary;
+      return { summary: "Balance lookup failed" };
     }
   }
 });
@@ -99,11 +110,9 @@ export const solanaBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchSolanaBalance(address);
-      const summary = `${quantity} SOL`;
-      return summary;
+      return buildBalanceResult(address, quantity, "SOL");
     } catch (error) {
-      const summary = "Balance lookup failed";
-      return summary;
+      return { summary: "Balance lookup failed" };
     }
   }
 });
