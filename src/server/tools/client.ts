@@ -3,24 +3,24 @@ import type { AITool } from "agents/ai-react";
 import { BalanceInputSchema, PortfolioReadInputSchema, PortfolioWriteInputSchema, PricesQuoteInputSchema } from "./schema";
 
 const clientToolMetadata: Record<string, { description: string; inputSchema: z.ZodTypeAny }> = {
-  "tool.portfolio.read": {
+  portfolioRead: {
     description: "Fetch the current canonical portfolio snapshot for a user.",
     inputSchema: PortfolioReadInputSchema
   },
-  "tool.portfolio.write": {
+  portfolioWrite: {
     description:
       "Persist portfolio mutations (add/update/remove assets). Requires human approval before execution.",
     inputSchema: PortfolioWriteInputSchema
   },
-  "tool.balance.bitcoin": {
+  bitcoinBalance: {
     description: "Fetch live Bitcoin balance for a wallet address.",
     inputSchema: BalanceInputSchema
   },
-  "tool.balance.ethereum": {
+  ethereumBalance: {
     description: "Fetch live Ethereum balance for a wallet address.",
     inputSchema: BalanceInputSchema
   },
-  "tool.balance.solana": {
+  solanaBalance: {
     description: "Fetch live Solana balance for a wallet address.",
     inputSchema: BalanceInputSchema
   },

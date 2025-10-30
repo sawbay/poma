@@ -185,19 +185,21 @@ async function applyPortfolioWrite(
   };
 }
 
-// export const portfolioRead = tool({
-//   description: "Fetch the current canonical portfolio snapshot for a user.",
-//   inputSchema: PortfolioReadInputSchema,
-//   execute: async ({ userId = DEFAULT_USER_ID }) =>
-//     readPortfolio(agent, userId)
-// });
-
-// export const portfolioWrite = tool({
-//   description:
-//     "Persist portfolio mutations (add/update/remove assets). Requires human approval before execution.",
-//   inputSchema: PortfolioWriteInputSchema
-//   // no execute: enforced via human-in-the-loop confirmation
-// });
+export function createPortfolioTools(agent: AgentStateManager) {
+  return {
+    portfolioRead: tool({
+      description: "Fetch the current canonical portfolio snapshot for a user.",
+      inputSchema: PortfolioReadInputSchema,
+      execute: async (input) =>
+        readPortfolio(agent, (input as z.infer<typeof PortfolioReadInputSchema>).userId)
+    }),
+    portfolioWrite: tool({
+      description:
+        "Persist portfolio mutations (add/update/remove assets). Requires human approval before execution.",
+      inputSchema: PortfolioWriteInputSchema
+    })
+  };
+}
 
 export async function executePortfolioWrite(
   manager: AgentStateManager,
