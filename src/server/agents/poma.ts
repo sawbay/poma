@@ -7,11 +7,14 @@ import {
   stepCountIs,
   type UIMessage,
   type TextUIPart,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
 } from "ai";
-import { createWorkersAI } from 'workers-ai-provider';
+import { createOpenAI, openai } from "@ai-sdk/openai";
 import systemprompt from './systemprompt.txt';
 import { createDefaultAgentState, createPortfolioTools, type PortfolioAgentState } from "../tools/portfolio";
 import { tools } from "../tools";
+import { env } from "cloudflare:workers";
 
 const MAX_TOTAL_MESSAGES = 32;
 const MAX_RECENT_MESSAGES = 12;
@@ -45,25 +48,44 @@ function isSummarySystemMessage(message: UIMessage): boolean {
 }
 
 export class PomaAgent extends AIChatAgent<Env, PortfolioAgentState> {
-  private model;
-
   constructor(ctx: AgentContext, env: Env) {
     super(ctx, env);
     this.initialState = createDefaultAgentState();
-    const workersai = createWorkersAI({ binding: this.env.AI });
-    this.model = workersai(this.env.MODEL_NAME as any);
+
   }
 
   async onChatMessage(onFinish: StreamTextOnFinishCallback<{}>) {
+    const model = createOpenAI({
+      apiKey: env.OPENAI_API_KEY,
+      baseURL: await env.AI.gateway("sawbayaigw").getUrl("openai"),
+      headers: {
+        "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`,
+      },
+    })(env.MODEL_NAME);
+
     const allTools = {
       ...tools,
       ...createPortfolioTools(this)
     };
 
+    // const stream = createUIMessageStream({
+    //   execute: async ({ writer }) => {
+    //     const result = streamText({
+    //       messages: convertToModelMessages(this.messages),
+    //       model: this.model,
+    //       onFinish
+    //     });
+
+    //     writer.merge(result.toUIMessageStream());
+    //   }
+    // });
+
+    // return createUIMessageStreamResponse({ stream });
+
     const result = streamText({
       system: this.systemPrompt(),
       messages: convertToModelMessages(this.messages),
-      model: this.model,
+      model,
       onFinish,
       // onFinish: async (event) => {
       //   try {
