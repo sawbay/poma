@@ -84,7 +84,9 @@ export const ethereumBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchEthereumBalance(address);
-      const summary = `Balance of ${address}: ${quantity} ETH`;
+      const displayAddress =
+        address.length > 10 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
+      const summary = `Balance of ${displayAddress}: ${quantity} ETH`;
       return summary;
     } catch (error) {
       const summary = "Balance lookup failed";
