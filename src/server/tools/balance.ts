@@ -72,7 +72,7 @@ export const bitcoinBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchBitcoinBalance(address);
-      const summary = `Balance of ${formatAddress(address)}: ${quantity} BTC`;
+      const summary = `Balance ${quantity} BTC`;
       return summary;
     } catch (error) {
       const summary = "Balance lookup failed";
@@ -87,7 +87,7 @@ export const ethereumBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchEthereumBalance(address);
-      const summary = `Balance of ${formatAddress(address)}: ${quantity} ETH`;
+      const summary = `Balance ${quantity} ETH`;
       return summary;
     } catch (error) {
       const summary = "Balance lookup failed";
@@ -102,7 +102,7 @@ export const solanaBalance = tool({
   execute: async ({ address }) => {
     try {
       const quantity = await fetchSolanaBalance(address);
-      const summary = `Balance of ${formatAddress(address)}: ${quantity} SOL`;
+      const summary = `Balance ${quantity} SOL`;
       return summary;
     } catch (error) {
       const summary = "Balance lookup failed";
